@@ -1,1 +1,1 @@
-# people-guesser
+# PeopleGuesser
