@@ -3,22 +3,20 @@ defmodule PeopleGuesser do
   use Hound.Helpers
 
   def start(_types, _args) do
-    IO.puts("Start")
+    IO.puts("Run")
 
     Hound.start_session()
 
-    navigate_to("https://people.funbox.ru/meet/")
-
+    navigate_to_start_page()
     auth()
-
-    find_element(:class, "how-to-play__button")
-    |> click()
-
-    do_game()
-
+    start_game()
     Process.sleep(5_000)
 
     Hound.end_session()
+  end
+
+  defp navigate_to_start_page do
+    navigate_to("https://people.funbox.ru/meet/")
   end
 
   defp auth do
@@ -34,12 +32,17 @@ defmodule PeopleGuesser do
     |> click()
   end
 
-  defp do_game(st \\ %{status: :new})
+  defp start_game() do
+    find_element(:class, "how-to-play__button")
+    |> click()
 
-  defp do_game(%{status: :new} = st) do
+    IO.puts("Start new game")
+    do_game(%{guesses_cont: 0, success_cont: 0})
+  end
+
+  defp do_game(%{guesses_cont: guesses_cont, success_cont: success_cont} = st) do
+    Process.sleep(4000 + :rand.uniform(200))
     IO.puts(user_hash())
-
-    Process.sleep(1000)
 
     options =
       find_element(:class, "game__options")
@@ -50,28 +53,43 @@ defmodule PeopleGuesser do
         element
         |> find_within_element(:class, "game__name")
         |> visible_text()
-        |> String.split() |> Enum.into([], fn word -> String.capitalize(word) end) |> Enum.join(" ")
+        |> process_name()
       end)
 
-    save_name_and_options()
+    IO.inspect(names)
 
+    save_name_and_options()
 
     find_most_likely_name(names)
     |> click_name()
 
-    Process.sleep(100_000)
+    guesses_cont = guesses_cont + 1
 
+    case search_element(:class, "game__additional-time") do
+      {:ok, element} ->
+        IO.puts inner_text(element)
+        if inner_text(element) == "+1", do: success_cont = success_cont + 1
 
+        IO.puts("guesses: #{guesses_cont}, success: #{success_cont}")
+        do_game(%{st | guesses_cont: guesses_cont, success_cont: success_cont})
 
-    # if do
-    #   find_element(:class, "personal-results__new-game")
-    #   |> click()
-    # else
-    # end
+      other ->
+        IO.puts("GAME OVER. Guesses: #{guesses_cont}. Success: #{success_cont}")
+        IO.puts("______________________________________________")
+
+        find_element(:class, "personal-results__new-game")
+        |> click()
+
+        do_game(%{st | guesses_cont: 0, success_cont: 0})
+    end
   end
 
-  defp do_game(%{status: :game_over} = st) do
-    do_game(%{st | status: :new})
+  defp process_name(name) do
+    name
+    |> String.split()
+    |> Enum.take(2)
+    |> Enum.map(fn word -> String.capitalize(word) end)
+    |> Enum.join(" ")
   end
 
   defp user_hash() do
