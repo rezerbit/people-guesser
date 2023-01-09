@@ -41,7 +41,7 @@ defmodule PeopleGuesser do
   end
 
   defp do_game(%{guesses_cont: guesses_cont, success_cont: success_cont} = st) do
-    Process.sleep(4000 + :rand.uniform(200))
+    Process.sleep(2000 + :rand.uniform(200))
     IO.puts(user_hash())
 
     options =
@@ -65,23 +65,31 @@ defmodule PeopleGuesser do
 
     guesses_cont = guesses_cont + 1
 
-    case search_element(:class, "game__additional-time") do
+    case search_element(:class, "personal-results__new-game") do
       {:ok, element} ->
-        IO.puts inner_text(element)
-        if inner_text(element) == "+1", do: success_cont = success_cont + 1
-
-        IO.puts("guesses: #{guesses_cont}, success: #{success_cont}")
-        do_game(%{st | guesses_cont: guesses_cont, success_cont: success_cont})
-
-      other ->
         IO.puts("GAME OVER. Guesses: #{guesses_cont}. Success: #{success_cont}")
         IO.puts("______________________________________________")
 
-        find_element(:class, "personal-results__new-game")
-        |> click()
-
+        click(element)
         do_game(%{st | guesses_cont: 0, success_cont: 0})
+
+      _other ->
+        IO.puts("guesses: #{guesses_cont}, success: #{success_cont}")
+        do_game(%{st | guesses_cont: guesses_cont, success_cont: success_cont})
     end
+  rescue
+    e ->
+      case search_element(:class, "personal-results__new-game") do
+        {:ok, element} ->
+          IO.puts("GAME OVER. Guesses: #{guesses_cont}. Success: #{success_cont}")
+          IO.puts("______________________________________________")
+
+          click(element)
+          do_game(%{st | guesses_cont: 0, success_cont: 0})
+
+        _other ->
+          raise e
+      end
   end
 
   defp process_name(name) do
