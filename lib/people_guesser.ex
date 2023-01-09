@@ -37,7 +37,7 @@ defmodule PeopleGuesser do
   defp do_game(st \\ %{status: :new})
 
   defp do_game(%{status: :new} = st) do
-    IO.puts(user_id())
+    IO.puts(user_hash())
 
     Process.sleep(1000)
 
@@ -74,7 +74,7 @@ defmodule PeopleGuesser do
     do_game(%{st | status: :new})
   end
 
-  defp user_id() do
+  defp user_hash() do
     user_url()
     |> String.split("?")
     |> List.last()
